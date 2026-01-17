@@ -132,14 +132,14 @@ function isTildaSource(lead: AmoCRMLead): boolean {
 // Извлекает campaign_id из utm_campaign (формат: cid|CAMPAIGN_ID|search)
 function extractCampaignId(utmCampaign: string | null): string | null {
   if (!utmCampaign) return null;
-  const match = utmCampaign.match(/cid\|(\d+)\|/);
+  const match = utmCampaign.match(/cid[|=](\d+)/i);
   return match ? match[1] : null;
 }
 
 // Извлекает adgroup_id из utm_content (формат: gid|ADGROUP_ID|aid|...)
 function extractAdgroupId(utmContent: string | null): string | null {
   if (!utmContent) return null;
-  const match = utmContent.match(/gid\|(\d+)\|/);
+  const match = utmContent.match(/gid[|=](\d+)/i);
   return match ? match[1] : null;
 }
 

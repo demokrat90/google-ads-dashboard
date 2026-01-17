@@ -11,6 +11,12 @@ export async function getDashboardConnection() {
   });
 }
 
+function extractAdgroupIdFromUtm(utmContent: string | null) {
+  if (!utmContent) return null;
+  const match = utmContent.match(/gid[|=](\d+)/i);
+  return match ? match[1] : null;
+}
+
 // Google Ads данные
 export async function getAdsDataForWeek(startDate: string, endDate: string) {
   const conn = await getDashboardConnection();
@@ -45,15 +51,47 @@ export async function getLeadsForWeek(startDate: string, endDate: string) {
       `SELECT
         campaign_id,
         adgroup_id,
-        COUNT(*) as total_leads,
-        SUM(is_qualified) as qualified_leads
+        utm_content,
+        is_qualified
       FROM amocrm_leads
       WHERE created_date BETWEEN ? AND ?
-        AND campaign_id IS NOT NULL
-      GROUP BY campaign_id, adgroup_id`,
+        AND campaign_id IS NOT NULL`,
       [startDate, endDate]
     );
-    return rows;
+
+    const aggregated = new Map<string, {
+      campaign_id: string;
+      adgroup_id: string | null;
+      total_leads: number;
+      qualified_leads: number;
+    }>();
+
+    for (const row of rows) {
+      const campaignId = row.campaign_id ? String(row.campaign_id) : null;
+      if (!campaignId) continue;
+
+      const adgroupId = row.adgroup_id
+        ? String(row.adgroup_id)
+        : extractAdgroupIdFromUtm(row.utm_content ?? null);
+
+      const key = `${campaignId}::${adgroupId ?? ''}`;
+      const existing = aggregated.get(key);
+      const qualified = Number(row.is_qualified) || 0;
+
+      if (existing) {
+        existing.total_leads += 1;
+        existing.qualified_leads += qualified;
+      } else {
+        aggregated.set(key, {
+          campaign_id: campaignId,
+          adgroup_id: adgroupId ?? null,
+          total_leads: 1,
+          qualified_leads: qualified
+        });
+      }
+    }
+
+    return Array.from(aggregated.values());
   } finally {
     await conn.end();
   }

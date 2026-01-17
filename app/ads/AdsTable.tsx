@@ -127,55 +127,35 @@ export function AdsTable({ campaigns, tildaData }: AdsTableProps) {
                   campaigns.map((campaign) => {
                     const isExpanded = expanded.has(campaign.id);
                     const hasAdGroups = campaign.adGroups.length > 0;
-                    const firstGroup = campaign.adGroups[0];
-                    const restGroups = campaign.adGroups.slice(1);
-                    const visibleGroupsCount = isExpanded ? campaign.adGroups.length : (hasAdGroups ? 1 : 0);
+                    const groupRows = campaign.adGroups;
 
                     return (
                       <Fragment key={campaign.id}>
-                        {/* Первая строка: кампания + первая группа */}
                         <tr className="campaign-row with-groups">
-                          <td
-                            className="campaign-cell"
-                            rowSpan={visibleGroupsCount > 0 ? visibleGroupsCount : 1}
-                          >
-                            {hasAdGroups && campaign.adGroups.length > 1 && (
+                          <td>
+                            {hasAdGroups && (
                               <button
                                 className="expand-btn"
                                 onClick={() => toggleCampaign(campaign.id)}
-                                title={isExpanded ? 'Свернуть' : 'Развернуть'}
+                                title={isExpanded ? 'Collapse' : 'Expand'}
                               >
-                                {isExpanded ? '▼' : '▶'}
+                                {isExpanded ? '-' : '+'}
                               </button>
                             )}
                             <span className="campaign-name">{campaign.name}</span>
                           </td>
-                          {hasAdGroups ? (
-                            <>
-                              <td className="group-cell">{firstGroup.name}</td>
-                              <td>{campaign.language || '—'}</td>
-                              <td className="number">{firstGroup.cost.toFixed(2)} AED</td>
-                              <td className="number">{firstGroup.leads}</td>
-                              <td className="number">{firstGroup.qualifiedLeads}</td>
-                              <td className="number">{formatCPL(firstGroup.cost, firstGroup.leads)}</td>
-                              <td className="number">{formatCPL(firstGroup.cost, firstGroup.qualifiedLeads)}</td>
-                            </>
-                          ) : (
-                            <>
-                              <td className="group-cell">—</td>
-                              <td>{campaign.language || '—'}</td>
-                              <td className="number">{campaign.cost.toFixed(2)} AED</td>
-                              <td className="number">{campaign.leads}</td>
-                              <td className="number">{campaign.qualifiedLeads}</td>
-                              <td className="number">{formatCPL(campaign.cost, campaign.leads)}</td>
-                              <td className="number">{formatCPL(campaign.cost, campaign.qualifiedLeads)}</td>
-                            </>
-                          )}
+                          <td className="group-cell">-</td>
+                          <td>{campaign.language || '-'}</td>
+                          <td className="number">{campaign.cost.toFixed(2)} AED</td>
+                          <td className="number">{campaign.leads}</td>
+                          <td className="number">{campaign.qualifiedLeads}</td>
+                          <td className="number">{formatCPL(campaign.cost, campaign.leads)}</td>
+                          <td className="number">{formatCPL(campaign.cost, campaign.qualifiedLeads)}</td>
                         </tr>
 
-                        {/* Остальные группы (если развёрнуто) */}
-                        {isExpanded && restGroups.map((group) => (
+                        {isExpanded && hasAdGroups && groupRows.map((group) => (
                           <tr key={group.id} className="adgroup-row">
+                            <td></td>
                             <td className="group-cell">{group.name}</td>
                             <td></td>
                             <td className="number">{group.cost.toFixed(2)} AED</td>
