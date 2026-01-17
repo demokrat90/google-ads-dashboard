@@ -49,8 +49,8 @@ export default async function AdsPage({ searchParams }: PageProps) {
   const campaignLeadsMap: Record<string, { leads: number; qualified: number }> = {};
 
   leadsData.forEach((lead: any) => {
-    const campaignId = lead.campaign_id;
-    const adgroupId = lead.adgroup_id;
+    const campaignId = lead.campaign_id ? String(lead.campaign_id) : null;
+    const adgroupId = lead.adgroup_id ? String(lead.adgroup_id) : null;
     const leads = Number(lead.total_leads) || 0;
     const qualified = Number(lead.qualified_leads) || 0;
 
@@ -72,11 +72,14 @@ export default async function AdsPage({ searchParams }: PageProps) {
   // Группируем по кампаниям
   const campaignsMap: Record<string, any> = {};
   adsData.forEach((row: any) => {
-    if (!campaignsMap[row.campaign_id]) {
+    const rowCampaignId = String(row.campaign_id);
+    const rowAdgroupId = row.adgroup_id ? String(row.adgroup_id) : null;
+
+    if (!campaignsMap[rowCampaignId]) {
       // Итоговые лиды кампании
-      const campaignLeads = campaignLeadsMap[row.campaign_id] || { leads: 0, qualified: 0 };
-      campaignsMap[row.campaign_id] = {
-        id: row.campaign_id,
+      const campaignLeads = campaignLeadsMap[rowCampaignId] || { leads: 0, qualified: 0 };
+      campaignsMap[rowCampaignId] = {
+        id: rowCampaignId,
         name: row.campaign_name,
         language: row.language,
         cost: 0,
@@ -86,19 +89,19 @@ export default async function AdsPage({ searchParams }: PageProps) {
       };
     }
 
-    if (row.adgroup_id) {
+    if (rowAdgroupId) {
       // Лиды группы объявлений
-      const groupLeads = adgroupLeadsMap[row.adgroup_id] || { leads: 0, qualified: 0 };
-      campaignsMap[row.campaign_id].adGroups.push({
-        id: row.adgroup_id,
+      const groupLeads = adgroupLeadsMap[rowAdgroupId] || { leads: 0, qualified: 0 };
+      campaignsMap[rowCampaignId].adGroups.push({
+        id: rowAdgroupId,
         name: row.adgroup_name,
         cost: Number(row.cost) || 0,
         leads: Number(groupLeads.leads) || 0,
         qualifiedLeads: Number(groupLeads.qualified) || 0
       });
-      campaignsMap[row.campaign_id].cost += Number(row.cost) || 0;
+      campaignsMap[rowCampaignId].cost += Number(row.cost) || 0;
     } else {
-      campaignsMap[row.campaign_id].cost += Number(row.cost) || 0;
+      campaignsMap[rowCampaignId].cost += Number(row.cost) || 0;
     }
   });
 
