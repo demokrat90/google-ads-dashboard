@@ -37,22 +37,20 @@ export async function getAdsDataForWeek(startDate: string, endDate: string) {
   }
 }
 
-// Лиды за неделю - группируем по campaign_id извлечённому из utm_campaign
-// Формат utm_campaign: "cid|CAMPAIGN_ID|search" или просто ID для других источников
+// Лиды за неделю - группируем по campaign_id и adgroup_id
 export async function getLeadsForWeek(startDate: string, endDate: string) {
   const conn = await getDashboardConnection();
   try {
     const [rows] = await conn.execute<mysql.RowDataPacket[]>(
       `SELECT
-        CASE
-          WHEN utm_campaign LIKE 'cid|%' THEN SUBSTRING_INDEX(SUBSTRING_INDEX(utm_campaign, '|', 2), '|', -1)
-          ELSE utm_campaign
-        END as campaign_id,
+        campaign_id,
+        adgroup_id,
         COUNT(*) as total_leads,
         SUM(is_qualified) as qualified_leads
       FROM amocrm_leads
       WHERE created_date BETWEEN ? AND ?
-      GROUP BY campaign_id`,
+        AND campaign_id IS NOT NULL
+      GROUP BY campaign_id, adgroup_id`,
       [startDate, endDate]
     );
     return rows;
@@ -121,6 +119,8 @@ export async function saveGoogleAdsDataForWeek(weekStart: string, weekEnd: strin
 interface AmoCRMLeadData {
   lead_id: string;
   created_date: string;
+  campaign_id: string | null;
+  adgroup_id: string | null;
   utm_source: string | null;
   utm_medium: string | null;
   utm_campaign: string | null;
@@ -148,12 +148,15 @@ export async function saveAmoCRMLeadsBatch(leads: AmoCRMLeadData[]) {
       try {
         await conn.execute(
           `INSERT INTO amocrm_leads
-           (lead_id, created_date, utm_source, utm_medium, utm_campaign, utm_content, utm_term, is_qualified)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+           (lead_id, created_date, campaign_id, adgroup_id, utm_source, utm_medium, utm_campaign, utm_content, utm_term, is_qualified)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
            ON DUPLICATE KEY UPDATE
+           campaign_id = VALUES(campaign_id),
+           adgroup_id = VALUES(adgroup_id),
            is_qualified = VALUES(is_qualified)`,
-          [lead.lead_id, lead.created_date, lead.utm_source, lead.utm_medium,
-           lead.utm_campaign, lead.utm_content, lead.utm_term, lead.is_qualified]
+          [lead.lead_id, lead.created_date, lead.campaign_id, lead.adgroup_id,
+           lead.utm_source, lead.utm_medium, lead.utm_campaign, lead.utm_content,
+           lead.utm_term, lead.is_qualified]
         );
         saved++;
       } catch (e) {

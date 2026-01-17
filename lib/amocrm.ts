@@ -129,9 +129,25 @@ function isTildaSource(lead: AmoCRMLead): boolean {
   return false;
 }
 
+// Извлекает campaign_id из utm_campaign (формат: cid|CAMPAIGN_ID|search)
+function extractCampaignId(utmCampaign: string | null): string | null {
+  if (!utmCampaign) return null;
+  const match = utmCampaign.match(/cid\|(\d+)\|/);
+  return match ? match[1] : null;
+}
+
+// Извлекает adgroup_id из utm_content (формат: gid|ADGROUP_ID|aid|...)
+function extractAdgroupId(utmContent: string | null): string | null {
+  if (!utmContent) return null;
+  const match = utmContent.match(/gid\|(\d+)\|/);
+  return match ? match[1] : null;
+}
+
 export interface ProcessedLead {
   lead_id: string;
   created_date: string;
+  campaign_id: string | null;
+  adgroup_id: string | null;
   utm_source: string | null;
   utm_medium: string | null;
   utm_campaign: string | null;
@@ -159,6 +175,8 @@ export async function getProcessedLeads(dateFrom: string, dateTo: string): Promi
     const processedLead: ProcessedLead = {
       lead_id: String(lead.id),
       created_date: new Date(lead.created_at * 1000).toISOString().split('T')[0],
+      campaign_id: extractCampaignId(utm.utm_campaign),
+      adgroup_id: extractAdgroupId(utm.utm_content),
       utm_source: utm.utm_source,
       utm_medium: utm.utm_medium,
       utm_campaign: utm.utm_campaign,

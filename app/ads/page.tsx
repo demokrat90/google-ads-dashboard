@@ -44,14 +44,28 @@ export default async function AdsPage({ searchParams }: PageProps) {
     console.error('[AdsPage] DB Error:', error);
   }
 
-  // Создаём map лидов по campaign_id
-  const leadsMap: Record<string, { leads: number; qualified: number }> = {};
+  // Создаём map лидов по adgroup_id и отдельно по campaign_id (для итогов)
+  const adgroupLeadsMap: Record<string, { leads: number; qualified: number }> = {};
+  const campaignLeadsMap: Record<string, { leads: number; qualified: number }> = {};
+
   leadsData.forEach((lead: any) => {
-    if (lead.campaign_id) {
-      leadsMap[lead.campaign_id] = {
-        leads: Number(lead.total_leads) || 0,
-        qualified: Number(lead.qualified_leads) || 0
-      };
+    const campaignId = lead.campaign_id;
+    const adgroupId = lead.adgroup_id;
+    const leads = Number(lead.total_leads) || 0;
+    const qualified = Number(lead.qualified_leads) || 0;
+
+    // Лиды по группе объявлений
+    if (adgroupId) {
+      adgroupLeadsMap[adgroupId] = { leads, qualified };
+    }
+
+    // Суммируем лиды по кампании
+    if (campaignId) {
+      if (!campaignLeadsMap[campaignId]) {
+        campaignLeadsMap[campaignId] = { leads: 0, qualified: 0 };
+      }
+      campaignLeadsMap[campaignId].leads += leads;
+      campaignLeadsMap[campaignId].qualified += qualified;
     }
   });
 
@@ -59,8 +73,8 @@ export default async function AdsPage({ searchParams }: PageProps) {
   const campaignsMap: Record<string, any> = {};
   adsData.forEach((row: any) => {
     if (!campaignsMap[row.campaign_id]) {
-      // Маппинг лидов по campaign_id
-      const campaignLeads = leadsMap[row.campaign_id] || { leads: 0, qualified: 0 };
+      // Итоговые лиды кампании
+      const campaignLeads = campaignLeadsMap[row.campaign_id] || { leads: 0, qualified: 0 };
       campaignsMap[row.campaign_id] = {
         id: row.campaign_id,
         name: row.campaign_name,
@@ -73,7 +87,8 @@ export default async function AdsPage({ searchParams }: PageProps) {
     }
 
     if (row.adgroup_id) {
-      const groupLeads = leadsMap[row.adgroup_name] || { leads: 0, qualified: 0 };
+      // Лиды группы объявлений
+      const groupLeads = adgroupLeadsMap[row.adgroup_id] || { leads: 0, qualified: 0 };
       campaignsMap[row.campaign_id].adGroups.push({
         id: row.adgroup_id,
         name: row.adgroup_name,
