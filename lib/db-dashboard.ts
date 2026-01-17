@@ -11,9 +11,17 @@ export async function getDashboardConnection() {
   });
 }
 
-function extractAdgroupIdFromUtm(utmContent: string | null) {
-  if (!utmContent) return null;
-  const match = utmContent.match(/gid[|=](\d+)/i);
+function extractCampaignIdFromUtm(utmCampaign: string | null) {
+  if (!utmCampaign) return null;
+  const match = utmCampaign.match(/cid[^0-9]*(\d+)/i);
+  if (match) return match[1];
+  if (/^\d+$/.test(utmCampaign)) return utmCampaign;
+  return null;
+}
+
+function extractAdgroupIdFromUtm(utmValue: string | null) {
+  if (!utmValue) return null;
+  const match = utmValue.match(/gid[^0-9]*(\d+)/i);
   return match ? match[1] : null;
 }
 
@@ -51,11 +59,12 @@ export async function getLeadsForWeek(startDate: string, endDate: string) {
       `SELECT
         campaign_id,
         adgroup_id,
+        utm_campaign,
         utm_content,
+        utm_term,
         is_qualified
       FROM amocrm_leads
-      WHERE created_date BETWEEN ? AND ?
-        AND campaign_id IS NOT NULL`,
+      WHERE created_date BETWEEN ? AND ?`,
       [startDate, endDate]
     );
 
@@ -67,12 +76,15 @@ export async function getLeadsForWeek(startDate: string, endDate: string) {
     }>();
 
     for (const row of rows) {
-      const campaignId = row.campaign_id ? String(row.campaign_id) : null;
+      const campaignId = row.campaign_id
+        ? String(row.campaign_id)
+        : extractCampaignIdFromUtm(row.utm_campaign ?? null);
       if (!campaignId) continue;
 
       const adgroupId = row.adgroup_id
         ? String(row.adgroup_id)
-        : extractAdgroupIdFromUtm(row.utm_content ?? null);
+        : (extractAdgroupIdFromUtm(row.utm_content ?? null)
+          || extractAdgroupIdFromUtm(row.utm_term ?? null));
 
       const key = `${campaignId}::${adgroupId ?? ''}`;
       const existing = aggregated.get(key);
