@@ -155,10 +155,10 @@ export function AdsTable({ campaigns, tildaData }: AdsTableProps) {
                               <td className="group-cell">{firstGroup.name}</td>
                               <td>{campaign.language || '—'}</td>
                               <td className="number">{firstGroup.cost.toFixed(2)} AED</td>
-                              <td className="number">{firstGroup.leads}</td>
-                              <td className="number">{firstGroup.qualifiedLeads}</td>
-                              <td className="number">{formatCPL(firstGroup.cost, firstGroup.leads)}</td>
-                              <td className="number">{formatCPL(firstGroup.cost, firstGroup.qualifiedLeads)}</td>
+                              <td className="number">{campaign.leads}</td>
+                              <td className="number">{campaign.qualifiedLeads}</td>
+                              <td className="number">{formatCPL(campaign.cost, campaign.leads)}</td>
+                              <td className="number">{formatCPL(campaign.cost, campaign.qualifiedLeads)}</td>
                             </>
                           ) : (
                             <>
@@ -179,10 +179,10 @@ export function AdsTable({ campaigns, tildaData }: AdsTableProps) {
                             <td className="group-cell">{group.name}</td>
                             <td></td>
                             <td className="number">{group.cost.toFixed(2)} AED</td>
-                            <td className="number">{group.leads}</td>
-                            <td className="number">{group.qualifiedLeads}</td>
-                            <td className="number">{formatCPL(group.cost, group.leads)}</td>
-                            <td className="number">{formatCPL(group.cost, group.qualifiedLeads)}</td>
+                            <td className="number">—</td>
+                            <td className="number">—</td>
+                            <td className="number">—</td>
+                            <td className="number">—</td>
                           </tr>
                         ))}
                       </Fragment>
