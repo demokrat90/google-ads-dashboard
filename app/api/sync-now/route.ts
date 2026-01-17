@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getProcessedLeads } from '@/lib/amocrm';
-import { saveAmoCRMLead, getDashboardConnection } from '@/lib/db-dashboard';
+import { saveAmoCRMLeadsBatch, getDashboardConnection } from '@/lib/db-dashboard';
 import { getCurrentWeekInfo } from '@/lib/week-helper';
 
 export async function GET() {
@@ -30,27 +30,13 @@ export async function GET() {
       });
     }
 
-    // Сохраняем каждый лид
-    const saved: string[] = [];
-    const errors: any[] = [];
-
-    for (const lead of leads) {
-      try {
-        await saveAmoCRMLead(lead);
-        saved.push(lead.lead_id);
-      } catch (error: any) {
-        errors.push({
-          lead_id: lead.lead_id,
-          error: error.message
-        });
-      }
-    }
+    // Сохраняем все лиды batch'ем (1 подключение на все)
+    const { saved, errors } = await saveAmoCRMLeadsBatch(leads);
 
     results.steps.push({
       name: 'Save results',
-      savedCount: saved.length,
-      errorCount: errors.length,
-      errors: errors.slice(0, 5)
+      savedCount: saved,
+      errorCount: errors
     });
 
     // Проверим что сохранилось

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getProcessedLeads } from '@/lib/amocrm';
-import { saveAmoCRMLead } from '@/lib/db-dashboard';
+import { saveAmoCRMLeadsBatch } from '@/lib/db-dashboard';
 import { getCurrentWeekInfo } from '@/lib/week-helper';
 
 export async function GET(request: NextRequest) {
@@ -21,12 +21,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, message: 'No new leads' });
     }
 
-    for (const lead of leads) {
-      await saveAmoCRMLead(lead);
-    }
+    // Batch сохранение - 1 подключение на все лиды
+    const { saved, errors } = await saveAmoCRMLeadsBatch(leads);
 
-    console.log(`[CRON] Сохранено ${leads.length} лидов`);
-    return NextResponse.json({ success: true, count: leads.length });
+    console.log(`[CRON] Сохранено ${saved} лидов, ошибок: ${errors}`);
+    return NextResponse.json({ success: true, saved, errors });
   } catch (error: any) {
     console.error('[CRON] Ошибка синхронизации amoCRM:', error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });

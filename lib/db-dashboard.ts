@@ -117,8 +117,8 @@ export async function saveGoogleAdsDataForWeek(weekStart: string, weekEnd: strin
   }
 }
 
-// Сохранить лид amoCRM
-export async function saveAmoCRMLead(lead: {
+// Тип лида amoCRM
+interface AmoCRMLeadData {
   lead_id: string;
   created_date: string;
   utm_source: string | null;
@@ -127,18 +127,40 @@ export async function saveAmoCRMLead(lead: {
   utm_content: string | null;
   utm_term: string | null;
   is_qualified: number;
-}) {
+}
+
+// Сохранить лид amoCRM (одиночный - для обратной совместимости)
+export async function saveAmoCRMLead(lead: AmoCRMLeadData) {
+  return saveAmoCRMLeadsBatch([lead]);
+}
+
+// Batch сохранение лидов amoCRM - одно подключение на все лиды
+export async function saveAmoCRMLeadsBatch(leads: AmoCRMLeadData[]) {
+  if (leads.length === 0) return { saved: 0, errors: 0 };
+
   const conn = await getDashboardConnection();
+  let saved = 0;
+  let errors = 0;
+
   try {
-    await conn.execute(
-      `INSERT INTO amocrm_leads
-       (lead_id, created_date, utm_source, utm_medium, utm_campaign, utm_content, utm_term, is_qualified)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE
-       is_qualified = VALUES(is_qualified)`,
-      [lead.lead_id, lead.created_date, lead.utm_source, lead.utm_medium,
-       lead.utm_campaign, lead.utm_content, lead.utm_term, lead.is_qualified]
-    );
+    // Используем одно подключение для всех лидов
+    for (const lead of leads) {
+      try {
+        await conn.execute(
+          `INSERT INTO amocrm_leads
+           (lead_id, created_date, utm_source, utm_medium, utm_campaign, utm_content, utm_term, is_qualified)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE
+           is_qualified = VALUES(is_qualified)`,
+          [lead.lead_id, lead.created_date, lead.utm_source, lead.utm_medium,
+           lead.utm_campaign, lead.utm_content, lead.utm_term, lead.is_qualified]
+        );
+        saved++;
+      } catch (e) {
+        errors++;
+      }
+    }
+    return { saved, errors };
   } finally {
     await conn.end();
   }
