@@ -166,6 +166,55 @@ export async function saveAmoCRMLeadsBatch(leads: AmoCRMLeadData[]) {
   }
 }
 
+// Batch сохранение лидов Tilda - отдельная таблица
+export async function saveTildaLeadsBatch(leads: AmoCRMLeadData[]) {
+  if (leads.length === 0) return { saved: 0, errors: 0 };
+
+  const conn = await getDashboardConnection();
+  let saved = 0;
+  let errors = 0;
+
+  try {
+    for (const lead of leads) {
+      try {
+        await conn.execute(
+          `INSERT INTO tilda_leads
+           (lead_id, created_date, utm_source, utm_medium, utm_campaign, utm_content, utm_term, is_qualified)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+           ON DUPLICATE KEY UPDATE
+           is_qualified = VALUES(is_qualified)`,
+          [lead.lead_id, lead.created_date, lead.utm_source, lead.utm_medium,
+           lead.utm_campaign, lead.utm_content, lead.utm_term, lead.is_qualified]
+        );
+        saved++;
+      } catch (e) {
+        errors++;
+      }
+    }
+    return { saved, errors };
+  } finally {
+    await conn.end();
+  }
+}
+
+// Лиды Tilda за период
+export async function getTildaLeadsForWeek(startDate: string, endDate: string) {
+  const conn = await getDashboardConnection();
+  try {
+    const [rows] = await conn.execute<mysql.RowDataPacket[]>(
+      `SELECT
+        COUNT(*) as total_leads,
+        SUM(is_qualified) as qualified_leads
+      FROM tilda_leads
+      WHERE created_date BETWEEN ? AND ?`,
+      [startDate, endDate]
+    );
+    return rows[0] || { total_leads: 0, qualified_leads: 0 };
+  } finally {
+    await conn.end();
+  }
+}
+
 // Избранные застройщики
 export async function getFavoriteDevelopers(): Promise<number[]> {
   const conn = await getDashboardConnection();

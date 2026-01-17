@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getProcessedLeads } from '@/lib/amocrm';
-import { saveAmoCRMLead, updateWeekHistory, getLeadsForWeek, getAdsDataForWeek } from '@/lib/db-dashboard';
+import { saveAmoCRMLeadsBatch, saveTildaLeadsBatch, updateWeekHistory, getLeadsForWeek, getAdsDataForWeek } from '@/lib/db-dashboard';
 import { getPreviousWeeks } from '@/lib/week-helper';
 
 export async function GET(request: NextRequest) {
@@ -16,11 +16,11 @@ export async function GET(request: NextRequest) {
     for (const week of previousWeeks) {
       try {
         // Синхронизируем лиды за эту неделю
-        const leads = await getProcessedLeads(week.startDate, week.endDate);
+        const { utmLeads, tildaLeads } = await getProcessedLeads(week.startDate, week.endDate);
 
-        for (const lead of leads) {
-          await saveAmoCRMLead(lead);
-        }
+        // Batch сохранение
+        await saveAmoCRMLeadsBatch(utmLeads);
+        await saveTildaLeadsBatch(tildaLeads);
 
         // Подсчитываем статистику
         const leadsStats = await getLeadsForWeek(week.startDate, week.endDate);

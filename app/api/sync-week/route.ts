@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getProcessedLeads } from '@/lib/amocrm';
-import { saveAmoCRMLeadsBatch, getDashboardConnection } from '@/lib/db-dashboard';
+import { saveAmoCRMLeadsBatch, saveTildaLeadsBatch, getDashboardConnection } from '@/lib/db-dashboard';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -15,36 +15,41 @@ export async function GET(request: NextRequest) {
 
   try {
     // Получаем лиды за указанный период
-    const leads = await getProcessedLeads(startDate, endDate);
+    const { utmLeads, tildaLeads } = await getProcessedLeads(startDate, endDate);
     results.steps.push({
       name: 'Fetched leads from amoCRM',
-      count: leads.length
+      utmCount: utmLeads.length,
+      tildaCount: tildaLeads.length
     });
 
-    if (leads.length === 0) {
+    if (utmLeads.length === 0 && tildaLeads.length === 0) {
       return NextResponse.json({
         ...results,
-        message: 'No leads with UTM data found for this period'
+        message: 'No leads found for this period'
       });
     }
 
-    // Сохраняем все лиды batch'ем (1 подключение на все)
-    const { saved, errors } = await saveAmoCRMLeadsBatch(leads);
+    // Сохраняем UTM лиды batch'ем
+    const utmResult = await saveAmoCRMLeadsBatch(utmLeads);
+    // Сохраняем Tilda лиды (без UTM) batch'ем
+    const tildaResult = await saveTildaLeadsBatch(tildaLeads);
 
     results.steps.push({
       name: 'Save results',
-      savedCount: saved,
-      errorCount: errors
+      utm: { saved: utmResult.saved, errors: utmResult.errors },
+      tilda: { saved: tildaResult.saved, errors: tildaResult.errors }
     });
 
     // Проверим что сохранилось
     const conn = await getDashboardConnection();
-    const [rows] = await conn.execute('SELECT COUNT(*) as count FROM amocrm_leads');
+    const [utmRows] = await conn.execute('SELECT COUNT(*) as count FROM amocrm_leads');
+    const [tildaRows] = await conn.execute('SELECT COUNT(*) as count FROM tilda_leads');
     await conn.end();
 
     results.steps.push({
       name: 'Final DB check',
-      totalRowsInTable: (rows as any)[0].count
+      utmLeadsInTable: (utmRows as any)[0].count,
+      tildaLeadsInTable: (tildaRows as any)[0].count
     });
 
     return NextResponse.json({ success: true, ...results });

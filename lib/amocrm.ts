@@ -3,6 +3,7 @@ import axios from 'axios';
 const AMOCRM_DOMAIN = process.env.AMOCRM_DOMAIN;
 const AMOCRM_ACCESS_TOKEN = process.env.AMOCRM_ACCESS_TOKEN;
 const QUALIFIED_TAG = process.env.AMOCRM_QUALIFIED_TAG || 'Квалифицирован';
+const TILDA_SOURCE = 'tilda publishing';
 
 const getBaseUrl = () => `https://${AMOCRM_DOMAIN}/api/v4`;
 
@@ -14,12 +15,17 @@ const getHeaders = () => ({
 interface AmoCRMLead {
   id: number;
   created_at: number;
+  source_id?: number | null;
   custom_fields_values?: Array<{
     field_name: string;
     values: Array<{ value: string }>;
   }>;
   _embedded?: {
     tags?: Array<{ name: string }>;
+    source?: {
+      id: number;
+      name: string;
+    };
   };
 }
 
@@ -49,7 +55,7 @@ export async function getLeads(dateFrom: string, dateTo: string): Promise<AmoCRM
               to: toTimestamp
             }
           },
-          with: 'contacts'
+          with: 'contacts,source'
         }
       });
 
@@ -114,27 +120,62 @@ function isQualified(lead: AmoCRMLead): boolean {
   );
 }
 
-export async function getProcessedLeads(dateFrom: string, dateTo: string) {
+function isTildaSource(lead: AmoCRMLead): boolean {
+  // Проверяем источник сделки на "tilda publishing"
+  const sourceName = lead._embedded?.source?.name?.toLowerCase();
+  if (sourceName && sourceName.includes('tilda')) {
+    return true;
+  }
+  return false;
+}
+
+export interface ProcessedLead {
+  lead_id: string;
+  created_date: string;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  utm_content: string | null;
+  utm_term: string | null;
+  is_qualified: number;
+}
+
+export interface ProcessedLeadsResult {
+  utmLeads: ProcessedLead[];
+  tildaLeads: ProcessedLead[];
+}
+
+export async function getProcessedLeads(dateFrom: string, dateTo: string): Promise<ProcessedLeadsResult> {
   const rawLeads = await getLeads(dateFrom, dateTo);
 
-  return rawLeads
-    .map(lead => {
-      const utm = extractUtmFromLead(lead);
+  const utmLeads: ProcessedLead[] = [];
+  const tildaLeads: ProcessedLead[] = [];
 
-      if (!utm.utm_source && !utm.utm_campaign && !utm.utm_content) {
-        return null;
-      }
+  for (const lead of rawLeads) {
+    const utm = extractUtmFromLead(lead);
+    const isTilda = isTildaSource(lead);
+    const hasUtm = utm.utm_source || utm.utm_campaign || utm.utm_content;
 
-      return {
-        lead_id: String(lead.id),
-        created_date: new Date(lead.created_at * 1000).toISOString().split('T')[0],
-        utm_source: utm.utm_source,
-        utm_medium: utm.utm_medium,
-        utm_campaign: utm.utm_campaign,
-        utm_content: utm.utm_content,
-        utm_term: utm.utm_term,
-        is_qualified: isQualified(lead) ? 1 : 0
-      };
-    })
-    .filter((lead): lead is NonNullable<typeof lead> => lead !== null);
+    const processedLead: ProcessedLead = {
+      lead_id: String(lead.id),
+      created_date: new Date(lead.created_at * 1000).toISOString().split('T')[0],
+      utm_source: utm.utm_source,
+      utm_medium: utm.utm_medium,
+      utm_campaign: utm.utm_campaign,
+      utm_content: utm.utm_content,
+      utm_term: utm.utm_term,
+      is_qualified: isQualified(lead) ? 1 : 0
+    };
+
+    // Сделки с UTM-метками идут в основную таблицу (включая Tilda+UTM)
+    if (hasUtm) {
+      utmLeads.push(processedLead);
+    }
+    // Сделки с Tilda БЕЗ UTM-меток - отдельная строка в таблице
+    else if (isTilda) {
+      tildaLeads.push(processedLead);
+    }
+  }
+
+  return { utmLeads, tildaLeads };
 }
