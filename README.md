@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Google Ads Dashboard
 
-## Getting Started
+Dashboard для отслеживания расходов Google Ads и лидов из amoCRM.
 
-First, run the development server:
+## Production
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+**URL:** https://ads-dashboard-next.vercel.app
+
+## Stack
+
+- Next.js 16 + TypeScript
+- Vercel (hosting, cron jobs)
+- MySQL (Hostinger)
+- amoCRM API
+- NextAuth (authentication)
+
+## Features
+
+- Google Ads costs tracking (via webhook)
+- amoCRM leads sync (hourly cron)
+- Campaign-level analytics with CPL/CPQL
+- Week navigation (Sat-Fri weeks)
+- Developers page with favorites
+
+## Data Flow
+
+```
+Google Ads Script → POST /api/webhook/google-ads → MySQL
+amoCRM API ← Vercel Cron hourly → MySQL
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## API Endpoints
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Endpoint | Description |
+|----------|-------------|
+| `/api/sync-now` | Manual sync current week |
+| `/api/sync-week?start=YYYY-MM-DD&end=YYYY-MM-DD` | Sync custom period |
+| `/api/cron/sync-amocrm` | Cron: hourly amoCRM sync |
+| `/api/webhook/google-ads` | Google Ads Script webhook |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Environment Variables
 
-## Learn More
+```env
+# Main DB (read-only)
+MYSQL_HOST, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DATABASE
 
-To learn more about Next.js, take a look at the following resources:
+# Dashboard DB (read/write)
+DASHBOARD_MYSQL_HOST, DASHBOARD_MYSQL_USER, DASHBOARD_MYSQL_PASSWORD, DASHBOARD_MYSQL_DATABASE
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# amoCRM
+AMOCRM_DOMAIN, AMOCRM_ACCESS_TOKEN, AMOCRM_QUALIFIED_TAG
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Auth
+NEXTAUTH_SECRET, NEXTAUTH_URL, USERS
 
-## Deploy on Vercel
+# Webhooks
+GOOGLE_ADS_WEBHOOK_SECRET, CRON_SECRET
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Development
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npm install
+npm run dev
+```
+
+## Deploy
+
+```bash
+vercel --prod
+```
