@@ -22,11 +22,21 @@ export default async function AdsPage({ searchParams }: PageProps) {
     weekInfo = previousWeeks[weekOffset - 1];
   }
 
-  const [adsData, leadsData, history] = await Promise.all([
-    getAdsDataForWeek(weekInfo.startDate, weekInfo.endDate),
-    getLeadsForWeek(weekInfo.startDate, weekInfo.endDate),
-    getWeeksHistory(10),
-  ]);
+  let adsData: any[] = [];
+  let leadsData: any[] = [];
+  let history: any[] = [];
+  let dbError: string | null = null;
+
+  try {
+    [adsData, leadsData, history] = await Promise.all([
+      getAdsDataForWeek(weekInfo.startDate, weekInfo.endDate),
+      getLeadsForWeek(weekInfo.startDate, weekInfo.endDate),
+      getWeeksHistory(10),
+    ]);
+  } catch (error: any) {
+    dbError = error.message || 'Ошибка подключения к базе данных';
+    console.error('[AdsPage] DB Error:', error);
+  }
 
   // Создаём map лидов по campaign_id
   const leadsMap: Record<string, { leads: number; qualified: number }> = {};
@@ -109,6 +119,21 @@ export default async function AdsPage({ searchParams }: PageProps) {
         </div>
       </div>
 
+      {dbError && (
+        <div style={{
+          background: '#fef2f2',
+          border: '1px solid #fecaca',
+          borderRadius: '8px',
+          padding: '16px',
+          marginBottom: '20px',
+          color: '#991b1b'
+        }}>
+          <strong>Ошибка БД:</strong> {dbError}
+          <br />
+          <small>Попробуйте обновить страницу через несколько минут</small>
+        </div>
+      )}
+
       <div className="table-container">
         <table className="data-table">
           <thead>
@@ -126,7 +151,7 @@ export default async function AdsPage({ searchParams }: PageProps) {
             {campaigns.length === 0 ? (
               <tr>
                 <td colSpan={7} style={{ textAlign: 'center', color: '#5f6368', padding: '40px' }}>
-                  Нет данных. Настройте Google Ads Script для отправки данных.
+                  {dbError ? 'Данные временно недоступны' : 'Нет данных. Настройте Google Ads Script для отправки данных.'}
                 </td>
               </tr>
             ) : (
