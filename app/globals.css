@@ -207,6 +207,53 @@ body {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   VIEW TOGGLE — Mode Switcher
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.view-toggle {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.view-toggle button {
+  padding: 6px 14px;
+  border: 1px solid var(--border-default);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.view-toggle button:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.view-toggle button.active {
+  background: var(--accent-primary);
+  color: white;
+  border-color: var(--accent-primary);
+}
+
+.view-toggle .toggle-btn {
+  background: transparent;
+  border-color: var(--border-subtle);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.view-toggle .toggle-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-secondary);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
    DATA TABLE — Compact & Modern
    ═══════════════════════════════════════════════════════════════════════════ */
 
@@ -279,15 +326,54 @@ body {
 .data-table .campaign-row {
   font-weight: 500;
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.5); /* Subtle distinction */
+  background: rgba(255, 255, 255, 0.5);
 }
 
-.data-table .campaign-row td:first-child {
+/* Campaign cell with rowSpan */
+.data-table .campaign-cell {
+  vertical-align: top;
+  font-weight: 500;
+  background: var(--bg-surface);
+  border-right: 1px solid var(--border-subtle);
+}
+
+/* Expand/collapse button */
+.expand-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  margin-right: 6px;
+  color: var(--text-muted);
+  font-size: 10px;
+  border-radius: 4px;
+  transition: all var(--transition-fast);
+  vertical-align: middle;
+}
+
+.expand-btn:hover {
+  color: var(--accent-primary);
+  background: var(--accent-primary-dim);
+}
+
+.campaign-name {
+  vertical-align: middle;
+}
+
+/* Group cell */
+.data-table .group-cell {
+  color: var(--text-secondary);
+  font-weight: 400;
+  font-size: 13px;
+}
+
+/* Campaign only mode (no groups column) */
+.data-table .campaign-row.campaign-only td:first-child {
   position: relative;
   padding-left: 24px;
 }
 
-.data-table .campaign-row td:first-child::before {
+.data-table .campaign-row.campaign-only td:first-child::before {
   content: '';
   position: absolute;
   left: 10px;
@@ -300,37 +386,25 @@ body {
   box-shadow: 0 0 8px var(--accent-primary-dim);
 }
 
-/* AdGroup row — indented */
+/* AdGroup row */
 .data-table .adgroup-row {
   color: var(--text-primary);
   font-size: 13px;
+  background: var(--bg-base);
 }
 
-.data-table .adgroup-row td:first-child {
-  padding-left: 40px;
-  color: var(--text-secondary);
-  position: relative;
+.data-table .adgroup-row:hover {
+  background: var(--bg-hover);
 }
 
-/* Tree connector line for ad groups */
-.data-table .adgroup-row td:first-child::before {
-  content: '';
-  position: absolute;
-  left: 13px;
-  top: -50%;
-  bottom: 50%;
-  width: 1px;
-  background: var(--border-default);
+/* Tilda row */
+.data-table .tilda-row {
+  background: #f0f7ff;
+  border-top: 2px solid var(--accent-primary);
 }
 
-.data-table .adgroup-row td:first-child::after {
-  content: '';
-  position: absolute;
-  left: 13px;
-  top: 50%;
-  width: 20px;
-  height: 1px;
-  background: var(--border-default);
+.data-table .tilda-row td:first-child {
+  color: var(--accent-primary);
 }
 
 
