@@ -109,6 +109,17 @@ export function AdsTable({ campaigns, tildaData }: AdsTableProps) {
               </tr>
             ) : (
               <>
+                {/* ИТОГО сверху */}
+                {campaigns.length > 0 && (
+                  <tr className="total-row total-row-top">
+                    <td colSpan={viewMode === 'all' ? 3 : 2}>ИТОГО</td>
+                    <td className="number">{totals.cost.toFixed(2)} AED</td>
+                    <td className="number">{totals.leads}</td>
+                    <td className="number">{totals.qualifiedLeads}</td>
+                    <td className="number">{formatCPL(totals.cost, totals.leads)}</td>
+                    <td className="number">{formatCPL(totals.cost, totals.qualifiedLeads)}</td>
+                  </tr>
+                )}
                 {viewMode === 'campaigns' ? (
                   // Режим "Только кампании" - итоги по кампаниям
                   campaigns.map((campaign) => (
