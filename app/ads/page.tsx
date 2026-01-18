@@ -115,7 +115,7 @@ export default async function AdsPage({ searchParams }: PageProps) {
   return (
     <main className="main">
       <div className="page-header">
-        <h1 className="page-title">Google Ads + amoCRM — deploy check</h1>
+        <h1 className="page-title">Google Ads + amoCRM</h1>
         <div className="week-selector">
           <Link
             href={`/ads?week=${weekOffset + 1}`}

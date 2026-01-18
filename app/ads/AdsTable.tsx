@@ -26,9 +26,9 @@ interface AdsTableProps {
 }
 
 export function AdsTable({ campaigns, tildaData }: AdsTableProps) {
-  // Все кампании развёрнуты по умолчанию
+  // Кампании с >1 группой развёрнуты, с 1 группой — свёрнуты
   const [expanded, setExpanded] = useState<Set<string>>(
-    new Set(campaigns.map(c => c.id))
+    new Set(campaigns.filter(c => c.adGroups.length > 1).map(c => c.id))
   );
   const [viewMode, setViewMode] = useState<'all' | 'campaigns'>('all');
 
