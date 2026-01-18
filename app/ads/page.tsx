@@ -105,7 +105,13 @@ export default async function AdsPage({ searchParams }: PageProps) {
     }
   });
 
-  const campaigns = Object.values(campaignsMap);
+  // Сортировка по расходу (по убыванию)
+  const campaigns = Object.values(campaignsMap)
+    .map((campaign: any) => ({
+      ...campaign,
+      adGroups: campaign.adGroups.sort((a: any, b: any) => b.cost - a.cost)
+    }))
+    .sort((a: any, b: any) => b.cost - a.cost);
 
   const historyWithRange = history.map((week: any) => ({
     ...week,
